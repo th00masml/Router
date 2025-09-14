@@ -213,6 +213,11 @@ def read_file(path: str) -> str:
         return f"Error reading {path}: {e}"
 
 
+def get_basic_tools():
+    """Export a default list of basic tools."""
+    return [now, today, time_in, web_search, web_get, calculator, read_file, ocr_image]
+
+
 @tool("ocr_image", return_direct=False)
 def ocr_image(path_or_url: str) -> str:
     """Extract readable text from an image using a local Ollama vision model.
@@ -257,6 +262,7 @@ def ocr_image(path_or_url: str) -> str:
         return text
     except Exception as e:
         return f"Error calling Ollama OCR ({model}): {e}"
+        return f"Error reading {path}: {e}"
 
 
 def get_basic_tools():
@@ -280,7 +286,13 @@ def select_tools_for_query(query: str):
         "today", "current date", "current time", "what time", "timezone", "utc", "now",
         "dzisiaj", "dzisiejsza data", "aktualna data", "bieżąca data", "aktualny czas", "ktora jest godzina", "która jest godzina", "czas w", "strefa czasowa"
     ]):
-        add(now); add(today); add(time_in)
+        # Try IANA tz first
+        if ZoneInfo is not None and spec and ("/" in spec or spec.upper() == "UTC"):
+            try:
+                tzinfo = ZoneInfo(spec if spec else "UTC")
+                label = spec
+            except (KeyError, ValueError, AttributeError):
+                tzinfo = None
         return tools
 
     # Search intents

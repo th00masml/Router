@@ -1,4 +1,4 @@
-import os
+﻿import os
 import base64
 import json
 import re
@@ -38,7 +38,7 @@ def k(name: str) -> str:
 # 1) CONFIG: Ollama models
 # =========================
 MODELS: Dict[str, str] = {
-    "chat":          "llama3.3:70b-instruct-q4_K_M",
+    "chat":          "denisavetisyan/gemma3-27b-q4_k_m-32k:latest",
     "reasoning":     "deepseek-v2.5",
     "code":          "qwen3-coder:latest",
     "router_light":  "llama3.1:8b-instruct-q4_0",
@@ -78,7 +78,7 @@ def route_intent(user_text: str) -> str:
 # ==========================
 # 3) Streamlit init
 # ==========================
-st.set_page_config(page_title="Router Chat — LangGraph + Ollama", layout="wide")
+st.set_page_config(page_title="Router Chat - LangGraph + Ollama", layout="wide")
 
 def init_session():
     if "history" not in st.session_state:
@@ -120,7 +120,7 @@ init_session()
 # (Removed duplicate definition of _build_run_config)
 
 # ==========================
-# 4) Sidebar (settings) — all widgets have unique keys
+# 4) Sidebar (settings) â€” all widgets have unique keys
 # ==========================
 with st.sidebar:
     st.header("Settings")
@@ -130,6 +130,21 @@ with st.sidebar:
         value=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         key=k("base_url"),
     )
+    # Quick Ollama status
+    try:
+        _installed = _ollama_list_models(base_url)
+        if not _installed:
+            st.caption("Ollama not reachable or no models installed at this base_url.")
+        else:
+            sample = ", ".join(sorted(list(_installed))[:8])
+            more = " ..." if len(_installed) > 8 else ""
+            st.caption(f"Installed models: {sample}{more}")
+            _missing = [m for m in MODELS.values() if m not in _installed]
+            if _missing:
+                preview = ", ".join(_missing[:4]) + (" ..." if len(_missing) > 4 else "")
+                st.warning(f"Missing configured models: {preview}")
+    except Exception:
+        pass
 
     temperature = st.slider(
         "Temperature",
@@ -193,7 +208,7 @@ with st.sidebar:
             options=list(MODELS.keys()),
             index=list(MODELS.keys()).index(tools_alias) if tools_alias in MODELS else 0,
             key=k("tools_alias"),
-            help="Model used internally by the tools agent (niezależny od trybu wybranego powyżej)",
+            help="Model used internally by the tools agent (niezaleÅ¼ny od trybu wybranego powyÅ¼ej)",
         )
         tools_iterations = st.slider(
             "Max tool iterations",
@@ -209,7 +224,7 @@ with st.sidebar:
             "Strict tools mode (fast finish)",
             value=st.session_state.get("cfg_tools_strict", False),
             key=k("tools_strict"),
-            help="For date/time queries force 1-step (now/today) then Final Answer; in general prefer ≤2 steps.",
+            help="For date/time queries force 1-step (now/today) then Final Answer; in general prefer â‰¤2 steps.",
         )
         web_get_timeout = st.number_input(
             "Web fetch timeout (s)",
@@ -340,17 +355,38 @@ def build_llms(base_url: str, temperature: float, request_timeout: int) -> Dict[
 
     return {alias: make_client(name) for alias, name in MODELS.items()}
 
+# --------------------------
+# Ollama connectivity helpers
+# --------------------------
+def _ollama_list_models(base_url: str) -> set[str]:
+    try:
+        base = (base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")).rstrip("/")
+        resp = requests.get(f"{base}/api/tags", timeout=5)
+        resp.raise_for_status()
+        data = resp.json() or {}
+        models = set()
+        for m in data.get("models", []):
+            name = m.get("name") or m.get("model") or ""
+            if name:
+                models.add(name)
+        return models
+    except Exception:
+        return set()
+
+models_fingerprint = json.dumps(MODELS, sort_keys=True)
 needs_rebuild = (
     st.session_state.llm_map is None
     or st.session_state.cfg_base_url != base_url
     or st.session_state.cfg_temp != temperature
     or st.session_state.cfg_request_timeout != request_timeout
+    or st.session_state.get("cfg_models_fingerprint") != models_fingerprint
 )
 if needs_rebuild:
     st.session_state.llm_map = build_llms(base_url, temperature, request_timeout)
     st.session_state.cfg_base_url = base_url
     st.session_state.cfg_temp = temperature
     st.session_state.cfg_request_timeout = request_timeout
+    st.session_state.cfg_models_fingerprint = models_fingerprint
     # Reset tools executors cache because LLM clients changed
     st.session_state.tools_exec_map = {}
 
@@ -375,7 +411,7 @@ def resolve_route(eff_history: List[AnyMessage], chosen_mode: str) -> str:
 # ==========================
 # 7) Header and status
 # ==========================
-st.title("Router Chat — LangGraph + Ollama")
+st.title("Router Chat - LangGraph + Ollama")
 status_cols = st.columns(4)
 with status_cols[0]:
     st.metric("Mode", "Auto" if st.session_state.mode == "auto" else st.session_state.mode)
@@ -452,7 +488,7 @@ with st.expander("Quick: Summarize URL", expanded=False):
                 st.error(f"Summarization failed: {e}")
 
 with st.expander("Document OCR / Reader", expanded=False):
-    st.caption("Upload an image or PDF, or provide a URL. PDFs with selectable text will be read directly; scanned PDFs are OCR’d per page if PyMuPDF is available.")
+    st.caption("Upload an image or PDF, or provide a URL. PDFs with selectable text will be read directly; scanned PDFs are OCRâ€™d per page if PyMuPDF is available.")
 
     # Single place to configure OCR model (with presets)
     current_ocr = st.session_state.get("cfg_ocr_model") or os.getenv("OLLAMA_OCR_MODEL", "llava:34b")
@@ -487,8 +523,8 @@ with st.expander("Document OCR / Reader", expanded=False):
 
     # Prompt configuration (default or custom)
     DEFAULT_OCR_PROMPT = (
-        "You are a high‑accuracy OCR transcription engine.\n"
-        "Goal: transcribe ALL visible text from the provided page image(s) AS‑IS.\n"
+        "You are a highâ€‘accuracy OCR transcription engine.\n"
+        "Goal: transcribe ALL visible text from the provided page image(s) ASâ€‘IS.\n"
         "Rules:\n"
         "- Preserve reading order and line breaks. Do not reflow into paragraphs.\n"
         "- Keep punctuation, capitalization, diacritics and spacing exactly as written.\n"
@@ -498,7 +534,7 @@ with st.expander("Document OCR / Reader", expanded=False):
         "- For tables, keep one row per line using pipes, e.g. '| col1 | col2 |'. Keep cell text verbatim.\n"
         "- If a word/field is illegible, write '[?]' in place; do NOT guess.\n"
         "- Do NOT summarize, translate, interpret, or add commentary. Do NOT fabricate content.\n"
-        "- For multi‑page input, we will combine results per page outside of you.\n"
+        "- For multiâ€‘page input, we will combine results per page outside of you.\n"
         "Output: plain text only."
     )
     current_prompt = st.session_state.get("cfg_ocr_prompt") or DEFAULT_OCR_PROMPT
@@ -793,7 +829,7 @@ with st.expander("Document OCR / Reader", expanded=False):
                         if not b64_pages:
                             st.error("No text in PDF and cannot render pages for OCR. Install 'pymupdf' to enable scanned PDF OCR.")
                         else:
-                            with st.spinner("OCR’ing PDF pages..."):
+                            with st.spinner("OCRâ€™ing PDF pages..."):
                                 texts = _llava_ocr_images(
                                     b64_pages,
                                     model_eff,
@@ -806,7 +842,7 @@ with st.expander("Document OCR / Reader", expanded=False):
                                 merged.append(f"[Page {i}]\n{t}")
                             out_txt = "\n\n".join(merged)
                             st.text_area("Extracted text (OCR)", out_txt, height=300)
-                            st.caption(f"Model: {model_eff} • Pages OCR’d: {len(texts)}")
+                            st.caption(f"Model: {model_eff} â€¢ Pages OCRâ€™d: {len(texts)}")
                             try:
                                 _trace_ocr(
                                     {
@@ -1004,7 +1040,7 @@ with st.expander("RAG: Documents", expanded=False):
                 st.warning("Nothing deleted (check exact filename).")
 
 with st.expander("RAG: Ask", expanded=False):
-    rag_q = st.text_input("Question (retrieval‑augmented)", key=k("rag_q"))
+    rag_q = st.text_input("Question (retrievalâ€‘augmented)", key=k("rag_q"))
     k_docs = st.slider("Top-K passages", 1, 10, 5, 1, key=k("rag_k"))
     # Optional filename filter
     try:
@@ -1060,7 +1096,7 @@ with st.expander("RAG: Ask", expanded=False):
                 for i, h in enumerate(hits, 1):
                     meta = h.get("metadata", {})
                     fn = meta.get("filename", "")
-                    st.markdown(f"**Doc {i}** — {fn}")
+                    st.markdown(f"**Doc {i}** â€” {fn}")
                     st.text(h["page_content"][:2000])
         except Exception as e:
             st.error(f"RAG failed: {e}")
@@ -1203,18 +1239,25 @@ def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool
         pct = 0.0 if token_count == 0 else min(0.95, token_count / 150.0)
         prog.progress(int(pct * 100))
 
+    last_meta: Dict[str, Any] | None = None
+
     for chunk in llm.stream(eff_history, config=run_cfg):
         if st.session_state.stop_flag:
             info.write("Stopped by user.")
             return {"reply": assembled, "route": route, "stopped": True, "elapsed": time.time() - request_start}
 
-        piece = getattr(chunk, "content", None) or str(chunk)
+        piece = getattr(chunk, "content", None)
         if piece:
-            assembled += piece
+            assembled += str(piece)
             token_count += 1
             output_area.write(assembled)
             update_progress()
-
+        try:
+            rm = getattr(chunk, "response_metadata", None)
+            if isinstance(rm, dict) and rm:
+                last_meta = rm
+        except Exception:
+            pass
             now = time.time()
 
             if first_token_time is None:
@@ -1231,10 +1274,21 @@ def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool
                 info.write(f"Waiting for first token... Elapsed: {elapsed_total}s")
             else:
                 elapsed_after_first = int(now - first_token_time)
-                info.write(f"Tokens: {token_count} • Elapsed total: {elapsed_total}s • Since first token: {elapsed_after_first}s")
+                info.write(f"Tokens: {token_count} - Elapsed total: {elapsed_total}s - Since first token: {elapsed_after_first}s")
 
     prog.progress(100)
-    info.write(f"Done. Tokens: {token_count} • Elapsed total: {int(time.time() - request_start)}s")
+    total_elapsed_s = int(time.time() - request_start)
+    try:
+        inp = (last_meta or {}).get("prompt_eval_count") or (last_meta or {}).get("input_tokens") or 0
+        outp = (last_meta or {}).get("eval_count") or (last_meta or {}).get("output_tokens") or 0
+        tot = (last_meta or {}).get("total_tokens")
+        if not isinstance(tot, int):
+            tot = (int(inp) if isinstance(inp, int) else 0) + (int(outp) if isinstance(outp, int) else 0)
+        model_name = (last_meta or {}).get("model_name") or (last_meta or {}).get("model") or MODELS.get(route, "")
+        info.write(f"Model: {model_name} | Time: {total_elapsed_s}s | Tokens — in: {inp}, out: {outp}, total: {tot}")
+    except Exception:
+        model_name = MODELS.get(route, "")
+        info.write(f"Model: {model_name} | Time: {total_elapsed_s}s | Tokens emitted: {token_count}")
     return {"reply": assembled, "route": route, "stopped": False, "elapsed": time.time() - request_start}
 
 # ==========================
@@ -1299,7 +1353,7 @@ if user_input:
                         if "raw" in s:
                             st.write(f"Step {i}: {s['raw']}")
                         else:
-                            st.markdown(f"- Step {i} • Tool: `{s['tool']}`")
+                            st.markdown(f"- Step {i} â€¢ Tool: `{s['tool']}`")
                             st.caption(f"Input: {s.get('input','')}")
                             obs = s.get("observation", "")
                             if len(obs) > 1200:
@@ -1376,3 +1430,5 @@ with st.expander("Debug / state", expanded=False):
         "tools_iterations": st.session_state.get("cfg_tools_iterations"),
         "tools_verbose": st.session_state.get("cfg_tools_verbose"),
     })
+
+
