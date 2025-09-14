@@ -1,0 +1,975 @@
+chat:
+  - |-
+    ROLE: Senior assistant communicating clearly and concisely.
+    STYLE: Friendly, neutral tone. Avoid jargon unless asked. Prefer lists and short paragraphs.
+    CONSTRAINTS:
+    - Always include a crisp summary at the end under "Summary".
+    - If uncertain, ask a targeted clarification question before answering fully.
+    TASK: Rewrite the following message to be polite, specific, and actionable, keeping it under 120 words.
+    INPUT:
+    <paste message>
+    OUTPUT:
+    - Improved Message
+    - Rationale (3 bullets)
+    - Summary (1 sentence)
+  - |-
+    HIGH-STAKES STAKEHOLDER BRIEFING
+    ROLE: Staff-level communicator creating an executive-ready brief.
+    CONTEXT: The audience is time-constrained, mixed technical and non-technical. Avoid jargon unless necessary and always define terms on first use.
+    INPUT: <paste notes, raw findings, and constraints>
+    CONSTRAINTS:
+    - Keep to 250–350 words total.
+    - Provide decisions and tradeoffs explicitly.
+    - Add one fallback option with risks.
+    OUTPUT:
+    - Situation (2–3 sentences)
+    - Options (2–3, each with pros/cons)
+    - Recommended Decision (with justification and required assumptions)
+    - Risks and Mitigations (2–3 items)
+    - Next Steps (3 actionable bullets with owners or roles)
+
+reasoning:
+  - |-
+    SYSTEMATIC REASONING REQUEST
+
+    GOAL: Solve the problem rigorously with transparent steps.
+    METHOD:
+    1) Restate the problem and assumptions.
+    2) Propose a plan and justify it.
+    3) Execute step-by-step derivation.
+    4) Verify each step (units, bounds, edge cases).
+    5) Provide a final answer and a quick sanity check.
+    CONSTRAINTS:
+    - Show formulas and intermediate steps.
+    - If multiple approaches exist, mention alternatives briefly.
+    PROBLEM:
+    <paste problem>
+    OUTPUT:
+    - Restatement
+    - Plan
+    - Derivation (numbered steps)
+    - Verification
+    - Final Answer
+  - |-
+    RIGOROUS PROOF CONSTRUCTION TEMPLATE
+    OBJECTIVE: Produce a correct and clear proof or counterexample.
+    METHOD:
+    - Classify the statement (algebraic, combinatorial, analytic, probabilistic, etc.).
+    - Select proof technique: direct, contrapositive, contradiction, induction, construction, extremal principle.
+    - State all assumptions and precisely restate the claim using symbols.
+    - Develop the argument in numbered steps, citing known lemmas or theorems when used.
+    - At each inference, justify why it holds (rule, lemma, or algebraic manipulation).
+    - Handle edge cases and boundary conditions explicitly.
+    - Conclude with a short recap of why the argument satisfies the claim.
+    INPUT: <paste theorem or claim>
+    OUTPUT:
+    - Formal Restatement
+    - Technique Selection and Rationale
+    - Proof Steps (numbered, each with justification)
+    - Edge Cases
+    - Conclusion
+
+code:
+  - |-
+    # COMPREHENSIVE CODE REVIEW REQUEST
+
+    ## REVIEW CONTEXT AND PARAMETERS
+
+    ### Project Metadata
+    - Repository/Project Name: [PROJECT_NAME]
+    - Programming Language(s): [LANGUAGES]
+    - Framework/Libraries: [FRAMEWORKS]
+    - Code Type: [API/Library/Application/Service/Module]
+    - Development Stage: [Prototype/Alpha/Beta/Production/Refactoring]
+    - Team Size: [NUMBER] developers
+    - Review Priority: [Security/Performance/Maintainability/Correctness/All]
+
+    ### Code Submission Details
+    - Files Changed: [NUMBER]
+    - Lines Added/Removed: +[ADD] -[REMOVE]
+    - Related Issue/Ticket: [ISSUE_ID]
+    - Previous Reviews: [YES/NO - links if YES]
+
+    ## REVIEW INSTRUCTIONS
+    You are a senior software architect with 20+ years of experience. Perform a multi-layer review:
+
+    LAYER 1: Semantic Analysis
+    - Logical correctness, edge cases, boundary conditions
+    - Business logic alignment vs. requirements
+    - Hidden assumptions; invariants and contracts
+
+    LAYER 2: Architectural Review
+    - Design patterns; SOLID
+    - Coupling/cohesion; abstraction boundaries
+    - Scalability implications
+
+    LAYER 3: Security Audit
+    - Input validation (injection/XSS/command injection)
+    - AuthZ/AuthN checks and access control
+    - Crypto/key handling; secrets; OWASP Top 10
+    - Dependency CVEs of key libs
+
+    LAYER 4: Performance Analysis
+    - Big‑O for hotspots; memory profile
+    - N+1 queries; indexes; I/O hotspots
+    - Concurrency (races, deadlocks); caching opportunities
+
+    LAYER 5: Code Quality Metrics
+    - Readability (1–10) with justification
+    - Maintainability, duplication, complexity
+    - Tests (unit/integration/E2E), coverage
+    - Documentation quality, TODOs, deprecations
+
+    LAYER 6: Domain-Specific Concerns
+    - Compliance [GDPR/HIPAA/PCI/etc]
+    - Platform constraints and standards
+
+    INPUT: <paste patch or files>
+    OUTPUT FORMAT:
+    - Critical Issues (must fix)
+    - High Priority (fix soon)
+    - Medium/Low (nice to have)
+    - Suggested Refactors (with rationale)
+    - Test Plan (concrete cases)
+    - Risk Assessment
+    - Follow‑ups & Questions
+    - Summary Table (area → severity → action)
+
+  - |-
+    # PRECISION CODE GENERATION REQUEST
+
+    ## PROJECT CONTEXT
+
+    ### System Overview
+    - **Project Type:** [Web API/CLI Tool/Library/Microservice/Desktop App/Mobile App]
+    - **Architecture Pattern:** [Monolithic/Microservices/Serverless/Event-Driven/Hexagonal]
+    - **Deployment Target:** [Cloud/On-Premise/Hybrid/Edge]
+    - **Expected Scale:** [Users/Requests per second/Data volume]
+    - **Criticality Level:** [Prototype/Production/Mission-Critical]
+
+    ### Technical Stack
+    - **Primary Language:** [LANGUAGE + VERSION]
+    - **Framework:** [FRAMEWORK + VERSION]
+    - **Database:** [TYPE + VERSION]
+    - **Message Queue:** [If applicable]
+    - **Cache Layer:** [Redis/Memcached/Other]
+    - **External Services:** [APIs/Services to integrate]
+
+    ## FUNCTIONAL REQUIREMENTS
+
+    ### Core Functionality
+    ```yaml
+    Feature: [FEATURE_NAME]
+      As a: [USER_ROLE]
+      I want to: [ACTION]
+      So that: [BUSINESS_VALUE]
+      
+      Acceptance Criteria:
+        - [ ] [SPECIFIC_CRITERION_1]
+        - [ ] [SPECIFIC_CRITERION_2]
+        - [ ] [SPECIFIC_CRITERION_3]
+      
+      Example Scenarios:
+        1. Given: [INITIAL_STATE]
+           When: [ACTION_TAKEN]
+           Then: [EXPECTED_OUTCOME]
+    ```
+
+    ### Input/Output Specifications
+    ```json
+    {
+      "input": {
+        "format": "[JSON/XML/CSV/Binary]",
+        "schema": {
+          "field1": "type | constraints | validation",
+          "field2": "type | constraints | validation"
+        },
+        "example": { }
+      },
+      "output": {
+        "format": "[JSON/XML/CSV/Binary]",
+        "schema": { },
+        "example": { }
+      }
+    }
+    ```
+
+    ### Business Rules
+    1. **Rule Name:** [DESCRIPTION]
+       - Condition: [WHEN_APPLIES]
+       - Action: [WHAT_HAPPENS]
+       - Exception: [EDGE_CASES]
+
+    ## NON-FUNCTIONAL REQUIREMENTS
+
+    ### Performance Constraints
+    - **Response Time:** p50 < [X]ms, p95 < [Y]ms, p99 < [Z]ms
+    - **Throughput:** [N] operations/second
+    - **Concurrent Users:** [NUMBER]
+    - **Data Processing:** [BATCH_SIZE] records in [TIME]
+    - **Memory Footprint:** < [SIZE]
+    - **CPU Usage:** < [PERCENTAGE]%
+
+    ### Reliability & Availability
+    - **Uptime SLA:** [99.9%/99.99%/99.999%]
+    - **Recovery Time Objective (RTO):** [MINUTES]
+    - **Recovery Point Objective (RPO):** [MINUTES]
+    - **Failure Handling:** [Retry/Circuit Breaker/Fallback]
+    - **Idempotency Required:** [YES/NO]
+
+    ### Security Requirements
+    - **Authentication:** [OAuth2/JWT/API Key/mTLS]
+    - **Authorization:** [RBAC/ABAC/Custom]
+    - **Encryption:** [At-Rest: AES-256, In-Transit: TLS 1.3]
+    - **Sensitive Data:** [PII/PCI/PHI handling requirements]
+    - **Audit Logging:** [What to log, retention period]
+    - **Rate Limiting:** [Requests per minute/hour/day]
+
+    ### Compliance & Standards
+    - **Regulatory:** [GDPR/HIPAA/PCI-DSS/SOX]
+    - **Industry Standards:** [ISO 27001/SOC2]
+    - **Coding Standards:** [PEP8/PSR-12/Airbnb Style Guide]
+    - **API Standards:** [REST/GraphQL/gRPC/OpenAPI 3.0]
+
+    ## CODE GENERATION INSTRUCTIONS
+
+    ### Architecture Guidelines
+
+    You are to generate production-ready code following these principles:
+
+    1. **DESIGN PATTERNS TO APPLY:**
+       - Repository Pattern for data access
+       - Factory Pattern for object creation
+       - Strategy Pattern for algorithm selection
+       - Observer Pattern for event handling
+       - [Add specific patterns needed]
+
+    2. **CODE ORGANIZATION:**
+    ```
+    project/
+    ├── src/
+    │   ├── domain/          # Business logic, entities
+    │   ├── application/     # Use cases, services
+    │   ├── infrastructure/  # External interfaces
+    │   ├── presentation/    # API/UI layer
+    │   └── shared/         # Common utilities
+    ├── tests/
+    │   ├── unit/
+    │   ├── integration/
+    │   └── e2e/
+    ├── docs/
+    └── config/
+    ```
+
+    3. **QUALITY REQUIREMENTS:**
+       - Code Coverage: Minimum [80%/90%/100%]
+       - Cyclomatic Complexity: Max [10] per function
+       - Function Length: Max [50] lines
+       - Class Length: Max [300] lines
+       - Dependencies: Max [5] per class
+
+    ### Implementation Specifications
+
+    #### Error Handling Strategy
+    - Use domain-specific exceptions
+    - Implement global error handler
+    - Include correlation IDs in errors
+    - Log errors with appropriate severity
+    - Return user-friendly error messages
+
+    #### Data Validation Rules
+    - Input validation at boundaries
+    - Business rule validation in domain
+    - Output validation before external calls
+    - Sanitize all user inputs
+
+    #### Testing Requirements
+    - Unit tests for all business logic
+    - Integration tests for external dependencies
+    - Contract tests for APIs
+    - Performance tests for critical paths
+
+    #### Logging & Monitoring
+    ```json
+    {
+      "timestamp": "ISO-8601",
+      "level": "INFO|WARN|ERROR|DEBUG",
+      "correlation_id": "uuid",
+      "user_id": "if applicable",
+      "action": "what happened",
+      "duration_ms": 123,
+      "metadata": {}
+    }
+    ```
+
+    ### Code Style Preferences
+
+    #### Naming Conventions
+    - Classes: `PascalCase`
+    - Functions/Methods: `snake_case` or `camelCase`
+    - Constants: `UPPER_SNAKE_CASE`
+    - Private members: `_leading_underscore`
+
+    #### Documentation Standards
+    - Include docstrings for all public functions
+    - Add type hints for all parameters and returns
+    - Provide usage examples in docstrings
+    - Document exceptions that can be raised
+
+    ## SPECIFIC IMPLEMENTATION REQUIREMENTS
+
+    ### Database Schema
+    ```sql
+    -- Provide exact schema requirements
+    CREATE TABLE [table_name] (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        -- additional fields
+    );
+    ```
+
+    ### API Endpoints
+    ```yaml
+    /api/v1/resource:
+      POST:
+        description: Create new resource
+        request:
+          headers:
+            - Authorization: Bearer token
+          body:
+            type: application/json
+        responses:
+          201: Created successfully
+          400: Validation error
+          401: Unauthorized
+    ```
+
+    ### Integration Points
+    1. **External Service A:**
+       - Endpoint: [URL]
+       - Authentication: [METHOD]
+       - Rate Limit: [CALLS/MINUTE]
+       - Retry Policy: [Exponential backoff]
+
+    ### Environment Configuration
+    ```env
+    # Required environment variables
+    DATABASE_URL=postgresql://...
+    REDIS_URL=redis://...
+    API_KEY=[SERVICE_NAME]
+    LOG_LEVEL=INFO
+    ENVIRONMENT=development|staging|production
+    ```
+
+    ## OUTPUT EXPECTATIONS
+
+    Generate code that includes:
+
+    1. **Core Implementation**
+       - All business logic with validation
+       - Data access layer with transactions
+       - API/Interface layer with DTOs
+       - Error handling and recovery
+
+    2. **Tests**
+       - Unit tests with mocks
+       - Integration tests with test database
+       - API tests with examples
+
+    3. **Documentation**
+       - README with setup instructions
+       - API documentation
+       - Architecture Decision Records
+       - Deployment guide
+
+    4. **Configuration**
+       - Docker/docker-compose files
+       - CI/CD pipeline configuration
+       - Environment variable templates
+       - Database migration scripts
+
+    5. **Observability**
+       - Structured logging
+       - Metrics collection
+       - Health check endpoints
+       - Distributed tracing setup
+
+    ## DELIVERY FORMAT
+
+    Structure your response as:
+
+    ### FILE: [path/to/file.ext]
+    ```language
+    [Complete file content]
+    ```
+
+    ### TESTS: [path/to/test_file.ext]
+    ```language
+    [Test implementation]
+    ```
+
+    ### DOCUMENTATION
+    ```markdown
+    [Setup and usage instructions]
+    ```
+
+    ### CONFIGURATION
+    ```yaml
+    [Config files]
+    ```
+
+    ### IMPLEMENTATION NOTES
+    - Design decisions made
+    - Assumptions
+    - Potential optimizations
+    - Known limitations
+
+    ## CONSTRAINTS & ASSUMPTIONS
+
+    - **Development Time:** [HOURS/DAYS/WEEKS]
+    - **Team Expertise:** [JUNIOR/MID/SENIOR]
+    - **Budget Limitations:** [If applicable]
+    - **Legacy System Constraints:** [If applicable]
+    - **Third-party Limitations:** [API rate limits, etc.]
+
+    ## EXAMPLE USAGE SCENARIOS
+
+    ### Scenario 1: [Happy Path]
+    ```
+    Input: [EXAMPLE_INPUT]
+    Process: [WHAT_HAPPENS]
+    Output: [EXPECTED_OUTPUT]
+    ```
+
+    ### Scenario 2: [Error Case]
+    ```
+    Input: [INVALID_INPUT]
+    Process: [ERROR_HANDLING]
+    Output: [ERROR_RESPONSE]
+    ```
+
+    ---
+
+    BEGIN CODE GENERATION:
+    ```
+
+long_context:
+  - |-
+    LONG DOCUMENT ANALYSIS
+    ROLE: Senior analyst.
+    TASK: Analyze the document and produce an outline, key ideas, entities, and Q&A.
+    STRATEGY:
+    - Chunk reading into sections; note per‑section insights.
+    - Reconcile contradictions; flag uncertainties.
+    - Build an index of people/organizations/terms.
+    INPUT:
+    <paste long text>
+    OUTPUT:
+    - Outline (sections with 1‑sentence summaries)
+    - Key Ideas (8–12 bullets)
+    - Entities (table: type, name, role, evidence)
+    - Q&A (5 questions with grounded answers)
+    - Contradictions/Unknowns (bullets)
+  - |-
+    POLICY COMPLIANCE MAPPING
+    ROLE: Compliance analyst.
+    TASK: Map the document’s content to the specified compliance framework controls, highlight gaps, and propose remediation.
+    INPUTS:
+    - Document: <paste or upload summary>
+    - Framework: <GDPR/HIPAA/PCI-DSS/ISO 27001 or custom list of controls>
+    PROCESS:
+    - Identify relevant sections per control.
+    - For each control, classify status: Fully Covered / Partially Covered / Not Covered.
+    - Provide evidence quotes and section references.
+    - Propose remediation steps for partial or missing coverage.
+    OUTPUT:
+    - Coverage Matrix (control → status → evidence → section refs)
+    - Gaps and Remediation (bullets per control)
+    - Executive Summary (5–7 sentences)
+
+rag_worker:
+  - |-
+    STRUCTURED EXTRACTION (RAG‑READY)
+    GOAL: Extract entities into the following JSON schema:
+    {
+      "companies": [{"name": str, "country": str|null}],
+      "funding": [{"company": str, "amount": number, "currency": str, "round": str|null}],
+      "dates": [{"label": str, "iso": str}]
+    }
+    RULES:
+    - Ground every field with a short evidence quote.
+    - If unknown, set null and add to "unknowns".
+    INPUT:
+    <paste text>
+    OUTPUT:
+    - json: <the JSON>
+    - evidence: [{field_path, quote}]
+    - unknowns: [list]
+  - |-
+    CANONICAL FACT EXTRACTION WITH PROVENANCE
+    GOAL: Extract normalized facts from the text into a strict schema with provenance.
+    SCHEMA:
+    {
+      "people": [{"name": str, "role": str|null}],
+      "orgs": [{"name": str, "type": str|null}],
+      "events": [{"label": str, "date_iso": str|null, "location": str|null}],
+      "claims": [{"statement": str, "sentiment": "pos|neg|neutral"}]
+    }
+    RULES:
+    - Normalize names (drop honorifics), and dates to ISO8601 when possible.
+    - Every field requires a provenance entry: {path, quote}.
+    - If multiple conflicting values appear, include one and note conflicts in "conflicts".
+    INPUT: <paste text>
+    OUTPUT:
+    - json: <schema-filled JSON>
+    - provenance: [{path, quote}]
+    - conflicts: [{field, values, notes}]
+
+router_light:
+  - |-
+    EXECUTIVE ONE‑PAGER
+    CONTEXT: Summarize crisply for a non‑technical exec.
+    INPUT: <paste text>
+    CONSTRAINTS:
+    - 3–5 bullets (max 18 words each)
+    - 1 measurable next action
+    - 1 key risk with mitigation
+    OUTPUT:
+    - Bullets
+    - Next Action
+    - Risk & Mitigation
+  - |-
+    CRISP SALES PITCH BRIEF
+    AUDIENCE: Busy decision-maker evaluating options.
+    INPUT: <paste product, value props, differentiators>
+    CONSTRAINTS:
+    - Maximum 120 words.
+    - Use concrete, verifiable claims (avoid hype).
+    - Include one quantifiable metric and one short customer proof point.
+    OUTPUT:
+    - One-paragraph pitch (≤120 words)
+    - Proof Point (1 sentence)
+    - Metric (1 sentence)
+
+tools:
+  - |-
+    RAPID WEB RESEARCH PLAN
+    TASK: Answer the question using web tools.
+    STEPS:
+    1) Propose 2–3 search queries.
+    2) Vet 2 credible sources (domain, date). Avoid SEO spam.
+    3) Fetch pages and extract key facts with citations.
+    4) Synthesize a concise answer with claim→evidence mapping.
+    INPUT: <your question>
+    OUTPUT:
+    - Queries
+    - Sources (domain, why credible)
+    - Findings (bullets with [URL])
+    - Answer (3–6 sentences)
+  - |-
+    MULTI-SOURCE VERIFICATION WORKFLOW
+    TASK: Verify a factual claim using web tools and return a referenced conclusion.
+    PROCEDURE:
+    1) Reformulate the claim into verifiable sub-claims.
+    2) Search for authoritative sources (government, standards bodies, major journals) and note publication dates.
+    3) Fetch 2–3 sources; extract direct quotes that confirm or refute each sub-claim.
+    4) Identify disagreements and note which source is more authoritative and why.
+    5) Conclude with a short, referenced verdict.
+    INPUT: <the claim>
+    OUTPUT:
+    - Sub-claims
+    - Sources (domain, date, reason for authority)
+    - Evidence (quote → URL)
+    - Conflicts (if any)
+    - Verdict (2–4 sentences with citations)
+  
+ocr:
+  - |-
+    # ADVANCED OCR PROCESSING & TEXT EXTRACTION REQUEST
+
+    ## DOCUMENT CONTEXT
+
+    ### Input Specifications
+    - **Document Type:** [Invoice/Receipt/Form/ID Card/Contract/Book/Handwritten/Mixed]
+    - **Source Format:** [PDF/PNG/JPG/TIFF/HEIC/Scanned/Photo]
+    - **Image Quality:** [High/Medium/Low/Variable]
+    - **Resolution:** [DPI value or Unknown]
+    - **Page Count:** [Single/Multiple - specify number]
+    - **Document Condition:** [Clean/Skewed/Damaged/Faded/Watermarked]
+
+    ### Content Characteristics
+    - **Primary Language:** [Language/Multiple languages]
+    - **Script Type:** [Latin/Cyrillic/Arabic/Chinese/Mixed]
+    - **Text Types Present:**
+      - [ ] Printed text
+      - [ ] Handwritten text
+      - [ ] Tables/Forms
+      - [ ] Signatures
+      - [ ] Stamps/Seals
+      - [ ] Barcodes/QR codes
+      - [ ] Mathematical formulas
+      - [ ] Special symbols
+
+    ### Document Structure
+    - **Layout:** [Single column/Multi-column/Mixed/Irregular]
+    - **Orientation:** [Portrait/Landscape/Mixed/Rotated]
+    - **Background:** [White/Colored/Patterned/Gradient]
+    - **Contains Graphics:** [Yes/No - logos, charts, images]
+    - **Text Density:** [Sparse/Normal/Dense]
+
+    ## EXTRACTION REQUIREMENTS
+
+    ### Core Objectives
+    ```yaml
+    Primary Goal: [Extract all text/Extract specific fields/Maintain layout/Searchable PDF]
+    Accuracy Priority: [Speed/Accuracy/Balance]
+    Preserve Structure: [Yes/No]
+
+    Specific Fields to Extract:
+      - Field_Name_1: [Description, Location, Format]
+      - Field_Name_2: [Description, Location, Format]
+      - Field_Name_3: [Description, Location, Format]
+
+    Output Use Case:
+      - [ ] Data entry automation
+      - [ ] Document search/indexing
+      - [ ] Translation preparation
+      - [ ] Compliance/audit
+      - [ ] Archive digitization
+      - [ ] Accessibility (screen readers)
+    ```
+
+    ### Preprocessing Requirements
+    ```yaml
+    Image Enhancement:
+      - [ ] Deskew/rotation correction
+      - [ ] Noise reduction
+      - [ ] Contrast adjustment
+      - [ ] Binarization
+      - [ ] Remove backgrounds/watermarks
+      - [ ] Shadow/fold removal
+      - [ ] Resolution upscaling
+
+    Region Detection:
+      - [ ] Text blocks
+      - [ ] Tables
+      - [ ] Headers/footers
+      - [ ] Columns
+      - [ ] Images/graphics
+      - [ ] Form fields
+    ```
+
+    ## PROCESSING INSTRUCTIONS
+
+    ### OCR Engine Configuration
+
+    You are to perform OCR with these specifications:
+
+    1. **DETECTION STRATEGY:**
+       - Text detection confidence threshold: [0.0-1.0]
+       - Minimum text size: [pixels]
+       - Character set restrictions: [if any]
+       - Handle mixed orientations: [Yes/No]
+       - Detect text in images: [Yes/No]
+
+    2. **EXTRACTION METHODOLOGY:**
+    ```
+    Priority Order:
+    1. Detect document boundaries and orientation
+    2. Identify layout structure and regions
+    3. Process text regions in reading order
+    4. Extract tables maintaining structure
+    5. Handle special elements (signatures, stamps)
+    6. Apply post-processing corrections
+    ```
+
+    3. **QUALITY ASSURANCE:**
+       - Confidence scoring per word/line
+       - Flag uncertain characters: [Yes/No]
+       - Spell check against dictionary: [Yes/No]
+       - Validate against patterns: [Yes/No]
+       - Cross-reference with database: [Yes/No]
+
+    ### Table Extraction Rules
+    ```yaml
+    Table Detection:
+      - Detect borderless tables: [Yes/No]
+      - Merge split cells: [Yes/No]
+      - Handle nested tables: [Yes/No]
+      
+    Column Alignment:
+      - Method: [Strict/Fuzzy/Smart]
+      - Separator: [Tab/Comma/Pipe/Custom]
+      
+    Cell Content:
+      - Preserve formatting: [Yes/No]
+      - Handle multi-line cells: [Yes/No]
+      - Empty cell placeholder: [NULL/""/"-"]
+    ```
+
+    ### Special Content Handling
+
+    #### Handwritten Text
+    - Recognition model: [ICR/AI-based/Hybrid]
+    - Cursive support: [Yes/No]
+    - Multiple writers: [Yes/No]
+    - Confidence threshold: [0.0-1.0]
+
+    #### Forms & Fields
+    ```json
+    {
+      "checkbox_detection": true,
+      "radio_button_detection": true,
+      "field_association": "label-value pairs",
+      "blank_field_handling": "mark as [BLANK]",
+      "field_validation": "type-specific"
+    }
+    ```
+
+    #### Mathematical Content
+    - Formula recognition: [LaTeX/MathML/Plain text]
+    - Symbol library: [Standard/Extended]
+    - Equation numbering: [Preserve/Ignore]
+    - Matrix/fraction support: [Yes/No]
+
+    ## OUTPUT SPECIFICATIONS
+
+    ### Format Requirements
+    ```yaml
+    Primary Format: [TXT/JSON/XML/CSV/DOCX/Searchable PDF]
+    Encoding: [UTF-8/UTF-16/ASCII]
+    Line Endings: [LF/CRLF/CR]
+
+    Structure Preservation:
+      - Maintain paragraphs: [Yes/No]
+      - Preserve indentation: [Yes/No]
+      - Keep line breaks: [Yes/No]
+      - Retain formatting: [Bold/Italic/Underline]
+    ```
+
+    ### Data Structure
+    ```json
+    {
+      "document_metadata": {
+        "filename": "string",
+        "pages": "integer",
+        "processing_time": "milliseconds",
+        "confidence_score": "float",
+        "language_detected": "string"
+      },
+      "pages": [
+        {
+          "page_number": 1,
+          "orientation": "portrait/landscape",
+          "content": {
+            "text": "extracted text",
+            "tables": [],
+            "regions": []
+          },
+          "confidence_scores": {
+            "overall": 0.95,
+            "by_word": []
+          }
+        }
+      ],
+      "extracted_fields": {
+        "field_name": {
+          "value": "extracted value",
+          "confidence": 0.98,
+          "location": {"page": 1, "bbox": [x1,y1,x2,y2]}
+        }
+      }
+    }
+    ```
+
+    ### Coordinate System
+    ```yaml
+    Bounding Boxes: [Include/Exclude]
+    Coordinate Format: [Pixel/Percentage/Points]
+    Origin: [Top-left/Bottom-left]
+    Format: [x,y,width,height] or [x1,y1,x2,y2]
+    ```
+
+    ## POST-PROCESSING RULES
+
+    ### Text Cleaning
+    - Remove extra whitespace: [Yes/No]
+    - Fix common OCR errors: [Yes/No]
+    - Standardize quotes/dashes: [Yes/No]
+    - Remove page numbers: [Yes/No]
+    - Clean headers/footers: [Yes/No]
+
+    ### Validation & Correction
+    ```python
+    # Example validation rules
+    validation_rules = {
+        "dates": r"\d{2}/\d{2}/\d{4}",
+        "amounts": r"\d+\.\d{2}",
+        "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+        "phone": r"\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
+    }
+
+    # Common OCR corrections
+    corrections = {
+        "rn": "m",  # Common misread
+        "0": "O",   # Context-dependent
+        "1": "l",   # Context-dependent
+    }
+    ```
+
+    ### Business Logic
+    1. **Field Dependencies:**
+       - If [FIELD_A] exists, then [FIELD_B] is required
+       - Sum of [FIELD_C] must equal [FIELD_D]
+
+    2. **Data Transformation:**
+       - Convert dates to ISO format
+       - Normalize phone numbers
+       - Uppercase specific fields
+       - Calculate derived fields
+
+    ## ERROR HANDLING
+
+    ### Quality Thresholds
+    ```yaml
+    Minimum Acceptable Confidence: [0.0-1.0]
+    Action on Low Confidence:
+      - [ ] Flag for manual review
+      - [ ] Attempt re-processing
+      - [ ] Use alternative method
+      - [ ] Return partial results
+      - [ ] Reject document
+
+    Error Response Format:
+      - Include partial results: [Yes/No]
+      - Provide confidence scores: [Yes/No]
+      - Suggest corrections: [Yes/No]
+      - Return problem regions: [Yes/No]
+    ```
+
+    ### Fallback Strategies
+    1. **If main OCR fails:** [Try alternative engine/Manual review/Skip]
+    2. **If language detection fails:** [Use default/Ask user/Try all]
+    3. **If structure detection fails:** [Treat as plain text/Segment manually]
+    4. **If table extraction fails:** [Extract as text/Mark for review]
+
+    ## PERFORMANCE REQUIREMENTS
+
+    ### Processing Constraints
+    - **Max processing time:** [seconds per page]
+    - **Memory limit:** [MB/GB]
+    - **Parallel processing:** [Yes/No - number of threads]
+    - **Batch size:** [pages per batch]
+    - **Priority level:** [Real-time/Normal/Background]
+
+    ### Optimization Preferences
+    ```yaml
+    Trade-offs:
+      Speed vs Accuracy: [Speed/Balanced/Accuracy]
+      Memory vs Performance: [Low memory/Balanced/Fast]
+      
+    Caching:
+      - Cache preprocessed images: [Yes/No]
+      - Store intermediate results: [Yes/No]
+      - Reuse language models: [Yes/No]
+    ```
+
+    ## COMPLIANCE & SECURITY
+
+    ### Data Handling
+    - **PII Detection:** [Mask/Flag/Extract/Ignore]
+    - **Data Retention:** [Process only/Temporary storage/Permanent]
+    - **Encryption:** [In-transit/At-rest/Both/None]
+    - **Audit Logging:** [Full/Minimal/None]
+    - **GDPR Compliance:** [Required/Not required]
+
+    ### Redaction Rules
+    ```yaml
+    Sensitive Data Types:
+      - [ ] Social Security Numbers
+      - [ ] Credit Card Numbers
+      - [ ] Personal Names
+      - [ ] Addresses
+      - [ ] Medical Information
+      
+    Redaction Method: [Black box/[REDACTED]/Remove]
+    ```
+
+    ## INTEGRATION REQUIREMENTS
+
+    ### Input Source
+    ```yaml
+    Source Type: [File upload/URL/Cloud storage/API stream]
+    Authentication: [None/API key/OAuth/Custom]
+    Preprocessing API: [If applicable]
+    Max File Size: [MB]
+    Supported Formats: [List formats]
+    ```
+
+    ### Output Destination
+    ```yaml
+    Destination: [Return/File/Database/Queue/Webhook]
+    Format: [As specified above]
+    Notification: [Email/Webhook/None]
+    Batch Delivery: [Single/Chunked/Streaming]
+    ```
+
+    ## EXAMPLE SCENARIOS
+
+    ### Scenario 1: Clean Document
+    ```
+    Input: High-quality scanned invoice
+    Expected Output: All fields extracted with >95% confidence
+    Processing Time: <2 seconds
+    ```
+
+    ### Scenario 2: Poor Quality
+    ```
+    Input: Faded receipt photo taken at angle
+    Expected Output: Best effort extraction with confidence scores
+    Preprocessing: Deskew, enhance, denoise
+    Fallback: Flag for manual review
+    ```
+
+    ### Scenario 3: Complex Layout
+    ```
+    Input: Multi-column newspaper with images
+    Expected Output: Text in reading order, images described
+    Special Handling: Column detection, article grouping
+    ```
+
+    ## CUSTOM RULES
+    [Add any domain-specific rules here]
+
+    ---
+
+    BEGIN OCR PROCESSING:
+
+    [INSERT IMAGE/DOCUMENT HERE OR PROVIDE PATH/URL]
+
+    ## ADDITIONAL CONTEXT
+    [Any specific information about the document that might help processing]
+
+  - |-
+    # OCR EXTRACTION REQUEST
+
+    ## QUICK CONFIG
+    - **Document Type:** [Invoice/Receipt/Form/ID/Contract/Other: ___]
+    - **Quality:** [Good/Medium/Poor]
+    - **Language:** [English/Polish/Other: ___]
+    - **Contains:** [✓] Text [ ] Tables [ ] Handwriting [ ] Forms
+
+    ## WHAT TO EXTRACT
+    - **Goal:** [Extract everything/Specific fields: ___]
+    - **Output Format:** [Plain text/JSON/CSV/Searchable PDF]
+    - **Preserve Layout:** [Yes/No]
+
+    ## SPECIAL REQUIREMENTS
+    - **Clean up OCR errors:** [Yes/No]
+    - **Include confidence scores:** [Yes/No]
+    - **Handle tables:** [Yes/No]
+    - **Detect PII:** [Yes/No]
+
+    BEGIN OCR PROCESSING:
+    [ATTACH IMAGE OR PROVIDE URL]

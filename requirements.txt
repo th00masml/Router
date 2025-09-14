@@ -1,0 +1,25 @@
+streamlit
+uvicorn[standard]
+fastapi
+langserve
+
+# LangChain stack
+langchain>=0.2
+langgraph>=0.2
+langchain-ollama>=0.1
+langchain-openai
+langsmith
+
+# Sometimes needed depending on Python version
+pydantic>=2
+requests
+beautifulsoup4
+duckduckgo-search
+pyyaml
+chromadb
+langchain-community
+langchain-text-splitters
+pypdf
+# Optional: for scanned PDF OCR rendering
+pymupdf
+Pillow

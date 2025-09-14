@@ -1,0 +1,32 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Accidental local venv under `router/`
+router/Lib/
+router/Scripts/
+router/Include/
+router/pyvenv.cfg
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# IDEs / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Coverage / build
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/

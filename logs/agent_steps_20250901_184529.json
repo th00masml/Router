@@ -1,0 +1,29 @@
+{
+  "timestamp": "20250901_184529",
+  "input": "jaka jest dzisiejsza data?",
+  "model_alias": "router_light",
+  "settings": {
+    "iterations": 10,
+    "verbose": false,
+    "web_get_timeout": 15,
+    "web_search_timeout": 8
+  },
+  "steps": [
+    {
+      "tool": "None (use previous result)",
+      "input": "",
+      "observation": "None (use previous result) is not a valid tool, try one of [now, today, time_in]."
+    },
+    {
+      "tool": "today",
+      "input": "",
+      "observation": "2025-09-01"
+    },
+    {
+      "tool": "_Exception",
+      "input": "Invalid Format: Missing 'Action:' after 'Thought:'",
+      "observation": "Invalid Format: Missing 'Action:' after 'Thought:'"
+    }
+  ],
+  "output": "Today's date is 2025-09-01."
+}
