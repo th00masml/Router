@@ -1,4 +1,4 @@
-﻿import os
+import os
 import base64
 import json
 import re
@@ -111,6 +111,9 @@ def init_session():
         st.session_state.cfg_ls_project = os.getenv("LANGCHAIN_PROJECT", "Router-App")
     if "cfg_ls_tags" not in st.session_state:
         st.session_state.cfg_ls_tags = ""
+    # Per-model generation options (context window and max output tokens)
+    if "model_options" not in st.session_state:
+        st.session_state.model_options: Dict[str, Dict[str, int]] = {}
 
 init_session()
 
@@ -208,7 +211,7 @@ with st.sidebar:
             options=list(MODELS.keys()),
             index=list(MODELS.keys()).index(tools_alias) if tools_alias in MODELS else 0,
             key=k("tools_alias"),
-            help="Model used internally by the tools agent (niezaleÅ¼ny od trybu wybranego powyÅ¼ej)",
+            help="Model used internally by the tools agent (independent of the mode selected above)",
         )
         tools_iterations = st.slider(
             "Max tool iterations",
@@ -265,6 +268,37 @@ with st.sidebar:
     # Persist save_logs switch
     if st.session_state.use_tools:
         st.session_state.cfg_tools_save_logs = st.session_state[k("tools_save_logs")]
+
+    # Per-model configuration (context + max tokens)
+    with st.expander("Models (context and tokens)", expanded=False):
+        # Global slider ranges; Ollama will enforce model-specific caps
+        GLOBAL_CTX_MIN, GLOBAL_CTX_MAX = 128, 131072
+        GLOBAL_TOK_MIN, GLOBAL_TOK_MAX = 16, 32768
+        for alias, model_name in MODELS.items():
+            opts = st.session_state.model_options.get(alias) or {}
+            cur_ctx = int(opts.get("num_ctx", 4096))
+            cur_pred = int(opts.get("num_predict", 1024))
+            st.caption(f"{alias} → {model_name}")
+            new_ctx = st.slider(
+                f"Context window (num_ctx) — {alias}",
+                min_value=GLOBAL_CTX_MIN,
+                max_value=GLOBAL_CTX_MAX,
+                value=max(GLOBAL_CTX_MIN, min(GLOBAL_CTX_MAX, cur_ctx)),
+                step=128,
+                key=k(f"ctx_{alias}"),
+                help="Maximum prompt+response tokens kept in context. Actual limit depends on model; higher values may be clamped.",
+            )
+            new_pred = st.slider(
+                f"Max output tokens (num_predict) — {alias}",
+                min_value=GLOBAL_TOK_MIN,
+                max_value=GLOBAL_TOK_MAX,
+                value=max(GLOBAL_TOK_MIN, min(GLOBAL_TOK_MAX, cur_pred)),
+                step=16,
+                key=k(f"pred_{alias}"),
+                help="Upper bound for generated tokens for this model.",
+            )
+            if (new_ctx != cur_ctx) or (new_pred != cur_pred) or (alias not in st.session_state.model_options):
+                st.session_state.model_options[alias] = {"num_ctx": int(new_ctx), "num_predict": int(new_pred)}
 
     st.markdown("Soft timeout (frontend, starts AFTER first token)")
     use_soft_timeout = st.checkbox(
@@ -337,13 +371,23 @@ with st.sidebar:
 def build_llms(base_url: str, temperature: float, request_timeout: int) -> Dict[str, ChatOllama]:
     # Some versions of langchain-ollama use `timeout` instead of `request_timeout`.
     # Try `request_timeout`, and if it fails, fall back to `timeout`.
-    def make_client(model: str) -> ChatOllama:
+    def make_client(alias: str, model: str) -> ChatOllama:
+        # Gather per-alias model options (context window, max tokens)
+        mo = (st.session_state.model_options or {}).get(alias, {})
+        num_ctx = mo.get("num_ctx")
+        num_predict = mo.get("num_predict")
+        model_kwargs: Dict[str, Any] = {}
+        if num_ctx is not None:
+            model_kwargs["num_ctx"] = int(num_ctx)
+        if num_predict is not None:
+            model_kwargs["num_predict"] = int(num_predict)
         try:
             return ChatOllama(
                 model=model,
                 temperature=temperature,
                 base_url=base_url,
                 request_timeout=request_timeout,
+                model_kwargs=model_kwargs if model_kwargs else None,
             )
         except TypeError:
             return ChatOllama(
@@ -351,9 +395,11 @@ def build_llms(base_url: str, temperature: float, request_timeout: int) -> Dict[
                 temperature=temperature,
                 base_url=base_url,
                 timeout=request_timeout,
+                # Fallback in older versions: pass directly if supported
+                **({"num_ctx": model_kwargs.get("num_ctx")} if "num_ctx" in model_kwargs else {}),
+                **({"num_predict": model_kwargs.get("num_predict")} if "num_predict" in model_kwargs else {}),
             )
-
-    return {alias: make_client(name) for alias, name in MODELS.items()}
+    return {alias: make_client(alias, name) for alias, name in MODELS.items()}
 
 # --------------------------
 # Ollama connectivity helpers
@@ -374,12 +420,14 @@ def _ollama_list_models(base_url: str) -> set[str]:
         return set()
 
 models_fingerprint = json.dumps(MODELS, sort_keys=True)
+model_opts_fingerprint = json.dumps(st.session_state.get("model_options", {}), sort_keys=True)
 needs_rebuild = (
     st.session_state.llm_map is None
     or st.session_state.cfg_base_url != base_url
     or st.session_state.cfg_temp != temperature
     or st.session_state.cfg_request_timeout != request_timeout
     or st.session_state.get("cfg_models_fingerprint") != models_fingerprint
+    or st.session_state.get("cfg_model_opts_fingerprint") != model_opts_fingerprint
 )
 if needs_rebuild:
     st.session_state.llm_map = build_llms(base_url, temperature, request_timeout)
@@ -387,6 +435,7 @@ if needs_rebuild:
     st.session_state.cfg_temp = temperature
     st.session_state.cfg_request_timeout = request_timeout
     st.session_state.cfg_models_fingerprint = models_fingerprint
+    st.session_state.cfg_model_opts_fingerprint = model_opts_fingerprint
     # Reset tools executors cache because LLM clients changed
     st.session_state.tools_exec_map = {}
 
@@ -407,6 +456,22 @@ def resolve_route(eff_history: List[AnyMessage], chosen_mode: str) -> str:
             last_user = m.content
             break
     return route_intent(last_user)
+
+# Central run-config builder used by multiple sections above.
+def _build_run_config(route_alias: str, *, name: Optional[str] = None, meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    tags = ["router-app", route_alias]
+    extra = [t.strip() for t in st.session_state.get("cfg_ls_tags", "").split(",") if t.strip()]
+    tags.extend(extra)
+    md: Dict[str, Any] = {"mode": st.session_state.mode}
+    if meta:
+        try:
+            md.update({k: v for k, v in meta.items() if v is not None})
+        except Exception:
+            pass
+    cfg: Dict[str, Any] = {"tags": tags, "metadata": md}
+    if name:
+        cfg["run_name"] = name
+    return cfg
 
 # ==========================
 # 7) Header and status
@@ -486,6 +551,158 @@ with st.expander("Quick: Summarize URL", expanded=False):
                     st.caption(f"Source: {url_in}")
             except Exception as e:
                 st.error(f"Summarization failed: {e}")
+
+with st.expander("Analyze Files", expanded=False):
+    st.caption("Upload files, apply a system prompt, and get an analysis. Supports text/markdown/HTML/JSON/CSV and basic PDF text extraction if PyPDF is installed.")
+    files = st.file_uploader(
+        "Upload files",
+        type=["txt", "md", "html", "json", "csv", "pdf"],
+        accept_multiple_files=True,
+        key=k("analyze_upload"),
+    )
+    # Per-run system prompt override
+    sys_override = st.text_area(
+        "System prompt for this analysis (optional)",
+        value=st.session_state.get(k("sys_prompt"), "You are a helpful assistant."),
+        height=100,
+        key=k("analyze_sys"),
+    )
+    user_instr = st.text_area(
+        "User instruction (what to do with the files)",
+        value="Summarize key points, highlight issues, and propose next steps.",
+        height=100,
+        key=k("analyze_instr"),
+    )
+    per_file = st.checkbox("Analyze each file separately (show per-file results)", value=False, key=k("analyze_per_file"))
+    max_chars = st.slider("Max characters per file (truncate if longer)", 1000, 50000, 12000, 500, key=k("analyze_max_chars"))
+
+    # Choose model alias (default to long_context for larger inputs)
+    aliases = list(MODELS.keys())
+    default_alias = "long_context" if ("long_context" in MODELS) else "chat"
+    model_alias = st.selectbox("Model alias", options=aliases, index=aliases.index(default_alias) if default_alias in aliases else 0, key=k("analyze_alias"))
+
+    def _read_text_from_upload(name: str, data: bytes) -> str:
+        try:
+            low = (name or "").lower()
+            if low.endswith((".txt", ".md")):
+                return data.decode("utf-8", errors="ignore")
+            if low.endswith(".html"):
+                txt = data.decode("utf-8", errors="ignore")
+                try:
+                    from bs4 import BeautifulSoup  # type: ignore
+                    soup = BeautifulSoup(txt, "html.parser")
+                    for tag in soup(["script", "style", "noscript"]):
+                        tag.decompose()
+                    return re.sub(r"\s+", " ", soup.get_text(" ")).strip()
+                except Exception:
+                    txt = re.sub(r"<[^>]+>", " ", txt)
+                    return re.sub(r"\s+", " ", txt).strip()
+            if low.endswith(".json"):
+                return data.decode("utf-8", errors="ignore")
+            if low.endswith(".csv"):
+                return data.decode("utf-8", errors="ignore")
+            if low.endswith(".pdf"):
+                try:
+                    import io
+                    from pypdf import PdfReader  # type: ignore
+                    reader = PdfReader(io.BytesIO(data))
+                    pages = [p.extract_text() or "" for p in reader.pages]
+                    text = "\n\n".join(pages)
+                    # Include basic form fields if available
+                    try:
+                        tf = getattr(reader, "get_form_text_fields", None)
+                        if callable(tf):
+                            fields = tf()
+                            if fields:
+                                lines = [f"{k}: {v}" for k, v in fields.items()]
+                                text += "\n\n[PDF Form Fields]\n" + "\n".join(lines)
+                        else:
+                            gf = getattr(reader, "get_fields", None)
+                            if callable(gf):
+                                fields = gf() or {}
+                                lines = []
+                                for k, v in fields.items():
+                                    val = None
+                                    if isinstance(v, dict):
+                                        val = v.get("/V") or v.get("V")
+                                    if val is None:
+                                        val = getattr(v, "value", None)
+                                    lines.append(f"{k}: {val if val is not None else ''}")
+                                if lines:
+                                    text += "\n\n[PDF Form Fields]\n" + "\n".join(lines)
+                    except Exception:
+                        pass
+                    return text
+                except Exception:
+                    return ""
+            # Fallback: try utf-8
+            return data.decode("utf-8", errors="ignore")
+        except Exception:
+            return ""
+
+    if st.button("Analyze", key=k("analyze_run")):
+        if not files:
+            st.error("Please upload at least one file.")
+        else:
+            llm = st.session_state.llm_map.get(model_alias)
+            if llm is None:
+                st.error("Selected model alias is not available. Check Settings → models.")
+            else:
+                try:
+                    # Prepare content
+                    items: list[tuple[str, str]] = []  # (filename, text)
+                    for f in files:
+                        raw = f.read()
+                        txt = _read_text_from_upload(f.name or "", raw)
+                        if not txt.strip():
+                            st.warning(f"No extractable text in {f.name}. Skipping.")
+                            continue
+                        if len(txt) > max_chars:
+                            txt = txt[:max_chars] + "\n...[truncated]"
+                        items.append((f.name or "(unnamed)", txt))
+
+                    if not items:
+                        st.error("No usable text extracted from the uploaded files.")
+                    else:
+                        sys_msg = sys_override.strip() or (st.session_state.get(k("sys_prompt")) or "You are a helpful assistant.")
+                        if per_file and len(items) > 1:
+                            # Run one call per file and display sections
+                            for i, (name, txt) in enumerate(items, start=1):
+                                messages = [
+                                    SystemMessage(content=sys_msg),
+                                    HumanMessage(content=f"Instruction: {user_instr}\n\nFile: {name}\n\nContent:\n{txt}"),
+                                ]
+                                with st.spinner(f"Analyzing {name}..."):
+                                    out = llm.invoke(
+                                        messages,
+                                        config=_build_run_config(
+                                            "file_analyze",
+                                            name="file_analyze_single",
+                                            meta={"file": name, "chars": len(txt)},
+                                        ),
+                                    )
+                                st.markdown(f"**{i}. {name}**")
+                                st.write(out.content)
+                        else:
+                            # Combine into a single context
+                            blocks = [f"[File: {n}]\n{t}" for (n, t) in items]
+                            combined = "\n\n".join(blocks)
+                            messages = [
+                                SystemMessage(content=sys_msg),
+                                HumanMessage(content=f"Instruction: {user_instr}\n\nFiles provided: {', '.join(n for n, _ in items)}\n\nContent:\n{combined}"),
+                            ]
+                            with st.spinner("Analyzing files..."):
+                                out = llm.invoke(
+                                    messages,
+                                    config=_build_run_config(
+                                        "file_analyze",
+                                        name="file_analyze_combined",
+                                        meta={"files": [n for n, _ in items], "total_chars": sum(len(t) for _, t in items)},
+                                    ),
+                                )
+                            st.write(out.content)
+                except Exception as e:
+                    st.error(f"Analysis failed: {e}")
 
 with st.expander("Document OCR / Reader", expanded=False):
     st.caption("Upload an image or PDF, or provide a URL. PDFs with selectable text will be read directly; scanned PDFs are OCRâ€™d per page if PyMuPDF is available.")
@@ -1198,21 +1415,6 @@ for msg in st.session_state.history:
 # ==========================
 # 11) Streaming with soft timeout AFTER first token + stop
 # ==========================
-def _build_run_config(route_alias: str, *, name: Optional[str] = None, meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    tags = ["router-app", route_alias]
-    extra = [t.strip() for t in st.session_state.get("cfg_ls_tags", "").split(",") if t.strip()]
-    tags.extend(extra)
-    md: Dict[str, Any] = {"mode": st.session_state.mode}
-    if meta:
-        try:
-            md.update({k: v for k, v in meta.items() if v is not None})
-        except Exception:
-            pass
-    cfg: Dict[str, Any] = {"tags": tags, "metadata": md}
-    if name:
-        cfg["run_name"] = name
-    return cfg
-
 def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool, budget_seconds: int) -> Dict[str, Any]:
     """
     Streams tokens from the resolved model.
@@ -1227,7 +1429,7 @@ def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool
     prog = st.progress(0)
     info = st.empty()
 
-    assembled = ""
+    assembled_tokens = []  # Use list for efficient concatenation
     token_count = 0
     st.session_state.stop_flag = False  # reset
 
@@ -1244,37 +1446,46 @@ def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool
     for chunk in llm.stream(eff_history, config=run_cfg):
         if st.session_state.stop_flag:
             info.write("Stopped by user.")
+            assembled = "".join(assembled_tokens)
             return {"reply": assembled, "route": route, "stopped": True, "elapsed": time.time() - request_start}
 
         piece = getattr(chunk, "content", None)
         if piece:
-            assembled += str(piece)
+            assembled_tokens.append(str(piece))
             token_count += 1
+            # Join tokens for display (more efficient than repeated concatenation)
+            assembled = "".join(assembled_tokens)
             output_area.write(assembled)
             update_progress()
+            
+            # Set first token time only when we receive actual content
+            if first_token_time is None:
+                first_token_time = time.time()
+                if use_soft:
+                    deadline_after_first = first_token_time + budget_seconds
+        
         try:
             rm = getattr(chunk, "response_metadata", None)
             if isinstance(rm, dict) and rm:
                 last_meta = rm
         except Exception:
             pass
-            now = time.time()
 
-            if first_token_time is None:
-                first_token_time = now
-                if use_soft:
-                    deadline_after_first = first_token_time + budget_seconds
+        # Check timing and soft timeout
+        now = time.time()
 
-            if use_soft and deadline_after_first is not None and now > deadline_after_first:
-                info.write("Soft timeout reached (after first token).")
-                return {"reply": assembled, "route": route, "stopped": True, "elapsed": now - request_start}
+        if use_soft and deadline_after_first is not None and now > deadline_after_first:
+            info.write("Soft timeout reached (after first token).")
+            assembled = "".join(assembled_tokens)
+            return {"reply": assembled, "route": route, "stopped": True, "elapsed": now - request_start}
 
-            elapsed_total = int(now - request_start)
-            if first_token_time is None:
-                info.write(f"Waiting for first token... Elapsed: {elapsed_total}s")
-            else:
-                elapsed_after_first = int(now - first_token_time)
-                info.write(f"Tokens: {token_count} - Elapsed total: {elapsed_total}s - Since first token: {elapsed_after_first}s")
+        # Update status display
+        elapsed_total = int(now - request_start)
+        if first_token_time is None:
+            info.write(f"Waiting for first token... Elapsed: {elapsed_total}s")
+        else:
+            elapsed_after_first = int(now - first_token_time)
+            info.write(f"Tokens: {token_count} - Elapsed total: {elapsed_total}s - Since first token: {elapsed_after_first}s")
 
     prog.progress(100)
     total_elapsed_s = int(time.time() - request_start)
@@ -1289,6 +1500,7 @@ def stream_reply(eff_history: List[AnyMessage], chosen_mode: str, use_soft: bool
     except Exception:
         model_name = MODELS.get(route, "")
         info.write(f"Model: {model_name} | Time: {total_elapsed_s}s | Tokens emitted: {token_count}")
+    assembled = "".join(assembled_tokens)
     return {"reply": assembled, "route": route, "stopped": False, "elapsed": time.time() - request_start}
 
 # ==========================

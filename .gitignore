@@ -30,3 +30,13 @@ coverage.xml
 htmlcov/
 dist/
 build/
+*.pyc
+.vocab_cache/
+node_modules/
+.env
+.env.*
+*.pem
+*.key
+*.safetensors
+*.gguf
+*.pt

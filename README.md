@@ -1,61 +1,329 @@
-# Router — LangGraph + Ollama
+# Router — LangGraph + Ollama with RAG
 
-A small collection of examples showing how to:
-- Route user intent across multiple Ollama models (LangGraph + LangChain)
-- Use a Streamlit chat UI with routing and time-bounded streaming
-- Expose chains and models via FastAPI + LangServe
-- Generate simple observability mock data (and a LangSmith demo)
+A comprehensive AI application framework that combines intent-based model routing, Retrieval Augmented Generation (RAG), and intelligent tool usage. This project demonstrates advanced LangChain patterns with local Ollama models.
 
-The code is split into focused scripts so you can pick what you need.
+## Key Features
+
+- **Intelligent Model Routing**: Automatically routes queries to specialized Ollama models based on intent (chat, code, reasoning, long-context, RAG)
+- **RAG System**: Complete document processing pipeline with vector storage using ChromaDB and Ollama embeddings
+- **Agent Tools**: ReAct agent with web search, file reading, OCR, calculator, and time/date tools
+- **Streamlit UI**: Rich chat interface with streaming responses, file upload, and document analysis
+- **FastAPI Server**: REST API endpoints for model chains via LangServe
+- **Observability**: Integrated LangSmith tracing and monitoring
+- **Document Processing**: Support for text, markdown, HTML, JSON, CSV, and PDF files with OCR capabilities
+
+## Architecture Overview
+
+The Router project follows a modular architecture with clear separation of concerns:
+
+```
+Router/
+├── app.py                 # Main Streamlit application
+├── rag/
+│   └── store.py          # Vector store operations (ChromaDB)
+├── agents/
+│   └── tools_agent.py    # ReAct agent implementation
+├── tools/
+│   └── basic_tools.py    # Tool definitions (web, OCR, calculator, etc.)
+├── server_langserve.py   # FastAPI server with LangServe
+├── observ_langsmith.py   # LangSmith observability utilities
+├── rag_db/              # Persistent vector database
+└── logs/                # Agent execution logs
+```
 
 ## Prerequisites
-- Python 3.10+
-- Ollama running locally (default base URL `http://localhost:11434`)
-  - Install: https://ollama.com
-  - Pull or replace the models used in the code (see the model names in the files). You can change them to any local models you have.
 
-## Setup
+### Required Software
+- **Python 3.10+** with pip
+- **Ollama** running locally (default: `http://localhost:11434`)
+  - Install from: https://ollama.com
+  - Ensure Ollama service is running
+
+### Required Ollama Models
+
+The application uses several specialized models. Pull them using:
+
 ```bash
-python -m venv .venv
-# Windows PowerShell
-. .venv/Scripts/Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
+# Core models (required)
+ollama pull mistral:7b-instruct-v0.3-q5_0      # RAG worker
+ollama pull llama3.1:8b-instruct-q4_0          # Light routing
+ollama pull qwen3-coder:latest                 # Code assistance
+ollama pull deepseek-v2.5                      # Reasoning tasks
+ollama pull mistral-small3.2:24b               # Long context
 
+# Embedding model (required for RAG)
+ollama pull nomic-embed-text                   # Vector embeddings
+
+# Vision model (optional, for OCR)
+ollama pull llava:34b                          # Document OCR
+```
+
+**Note**: You can modify model names in `app.py` MODELS dictionary to use your preferred models.
+
+## Installation
+
+### 1. Clone and Setup Virtual Environment
+
+```bash
+git clone <repository-url>
+cd Router
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# Windows Command Prompt:
+.venv\Scripts\activate.bat
+# macOS/Linux:
+source .venv/bin/activate
+```
+
+### 2. Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-Optional environment variables:
-- `OLLAMA_BASE_URL` — override Ollama URL (default `http://localhost:11434`).
-- `LANGSMITH_API_KEY` — required only for LangSmith tracing in `observ_langsmith.py`.
+### 3. Environment Configuration
 
-## Apps and Scripts
+Create a `.env` file (optional) or set environment variables:
 
-- Streamlit Router UI: rich chat with routing and soft timeouts
-  - Run: `streamlit run app.py`
-  - Notes: configure temperature, streaming, HTTP timeout, and system prompt in the sidebar.
-  - New: select `Web/Tools agent` mode to enable tools (web_search, web_get, calculator, read_file). In `Auto (router)` mode, messages containing URLs or web keywords will auto-route to tools.
+```bash
+# Ollama Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_OCR_MODEL=llava:34b
+OLLAMA_TIMEOUT=180
 
-- Minimal Streamlit chat example
-  - Run: `streamlit run app_streamlit.py`
+# LangSmith Observability (optional)
+LANGSMITH_API_KEY=your_langsmith_key_here
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=Router-App
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+```
 
-- FastAPI + LangServe server
-  - Full demo: `uvicorn server_langserve:app --reload --port 8000`
-    - Open: http://127.0.0.1:8000/docs and try `/ollama`, `/essay`, `/song`
-  - Minimal sanity server: `uvicorn sanity_langserve:app --reload --port 8080`
-    - Open: http://127.0.0.1:8080/ and `/docs` or `/ollama/playground/`
+### 4. Verify Installation
 
-- LangSmith observability demo (optional)
-  - Requirements: set `LANGSMITH_API_KEY` and have LangSmith project configured
-  - Run: `python observ_langsmith.py`
-  - Track in UI: https://smith.langchain.com (open Project "Router-App")
+Test Ollama connectivity:
+```bash
+curl http://localhost:11434/api/tags
+```
 
-### LangSmith Dashboard
-- UI: https://smith.langchain.com
-- Project: set `LANGCHAIN_PROJECT=Router-App` (see examples below)
-- Filter runs by tags from examples, e.g. `suite=chat-smoke`, `suite=rag-batch`
+## Usage
 
-## LangSmith Tests (PowerShell)
+### 1. Streamlit Web Application (Primary Interface)
+
+Launch the main application:
+
+```bash
+streamlit run app.py
+```
+
+The Streamlit interface provides:
+
+- **Chat Interface**: Multi-model conversation with automatic intent routing
+- **RAG Document Upload**: Upload and index documents for question-answering
+- **File Analysis**: Analyze uploaded files with custom prompts
+- **OCR/Document Reader**: Extract text from images and PDFs
+- **Agent Tools**: Enable web search, file reading, calculator, and OCR tools
+- **Configuration Panel**: Adjust model parameters, timeouts, and settings
+
+#### Key Interface Features:
+
+- **Automatic Routing**: Messages are routed to appropriate models based on content
+- **Manual Mode Selection**: Override routing by selecting specific models
+- **Streaming Responses**: Real-time token streaming with stop capability
+- **Soft Timeouts**: Configurable response time limits
+- **Per-Model Configuration**: Context windows and token limits
+- **LangSmith Integration**: Optional observability and tracing
+
+### 2. FastAPI Server (REST API)
+
+Launch the API server:
+
+```bash
+uvicorn server_langserve:app --reload --port 8000
+```
+
+Access the interactive API docs at: http://localhost:8000/docs
+
+Available endpoints:
+- `/ollama` - Direct model chat
+- `/essay` - Essay generation chain
+- `/song` - Song writing chain
+
+### 3. Command Line Observability
+
+Run observability demos:
+
+```bash
+# Chat example with tracing
+python observ_langsmith.py --enable --project "Router-App" --prompt "Explain RAG in one sentence"
+
+# RAG example with tracing
+python observ_langsmith.py rag --enable --question "What are the key features?" --k 5
+```
+
+## RAG (Retrieval Augmented Generation) System
+
+The Router project includes a complete RAG implementation for document-based question answering.
+
+### Vector Store Operations
+
+The RAG system uses ChromaDB with Ollama embeddings:
+
+```python
+from rag.store import add_documents, similarity_search, delete_by_filename
+
+# Add documents to vector store
+add_documents(base_url, [
+    {"text": "Document content...", "metadata": {"filename": "doc1.txt"}}
+])
+
+# Search for relevant passages
+results = similarity_search(base_url, "query", k=5)
+
+# Delete documents by filename
+delete_by_filename(base_url, "doc1.txt")
+```
+
+### Supported Document Formats
+
+- **Text**: `.txt`, `.md` (markdown)
+- **Web**: `.html` (with tag cleaning)
+- **Data**: `.json`, `.csv`
+- **PDF**: Text extraction + form fields
+- **Images**: OCR via vision models (PNG, JPG, WEBP, etc.)
+
+### Document Processing Pipeline
+
+1. **Text Extraction**: Format-specific content extraction
+2. **Chunking**: Recursive character splitting (800 chars, 120 overlap)
+3. **Embedding**: Ollama `nomic-embed-text` model
+4. **Storage**: Persistent ChromaDB collection
+5. **Retrieval**: Similarity search with metadata filtering
+
+### RAG Workflow in Streamlit
+
+1. **Upload Documents**: Use "RAG: Documents" expander
+2. **Ask Questions**: Use "RAG: Ask" expander with optional filename filtering
+3. **Grounded Responses**: Citations to source documents
+
+## Agent Tools System
+
+The Router includes a ReAct agent with intelligent tool selection:
+
+### Available Tools
+
+| Tool | Purpose | Input Example |
+|------|---------|---------------|
+| `web_search` | DuckDuckGo search | "AI news 2024" |
+| `web_get` | Fetch webpage content | "https://example.com" |
+| `calculator` | Math expressions | "2*(3+4)^2" |
+| `read_file` | Local file reading | "data/config.json" |
+| `ocr_image` | Image text extraction | "document.png" |
+| `now` | Current date/time | "" (empty input) |
+| `today` | Current date | "" (empty input) |
+| `time_in` | Timezone conversion | "Europe/Warsaw" |
+
+### Tool Selection Logic
+
+The agent automatically selects relevant tools based on query content:
+
+- **Date/Time queries** → `now`, `today`, `time_in`
+- **Web searches** → `web_search`, `web_get`
+- **Math expressions** → `calculator`
+- **File references** → `read_file`
+- **OCR requests** → `ocr_image`
+
+### Agent Configuration
+
+- **Max Iterations**: Limit tool usage steps (default: 10)
+- **Strict Mode**: Fast execution for time/date queries
+- **Verbose Logging**: Detailed step traces
+- **Timeout Settings**: Web request timeouts
+
+## Configuration Guide
+
+### Model Configuration
+
+Edit the `MODELS` dictionary in `app.py` to customize model assignments:
+
+```python
+MODELS: Dict[str, str] = {
+    "chat":          "your-chat-model",
+    "reasoning":     "your-reasoning-model",
+    "code":          "your-code-model",
+    "router_light":  "your-light-model",
+    "long_context":  "your-long-context-model",
+    "rag_worker":    "your-rag-model",
+}
+```
+
+### Intent Routing Rules
+
+The system automatically routes queries based on keywords:
+
+- **Code**: "code", "python", "function", "api", "bug", "compile"
+- **Long Context**: "pdf", "document", "analyze file", long text (>800 words)
+- **Reasoning**: "prove", "step by step", "logic", "mathematics"
+- **RAG**: "extract", "summarize", "bullet points", "parse"
+- **Light**: "short", "tl;dr", "brief", "concise"
+- **Default**: "chat" for general queries
+
+### Vector Store Configuration
+
+Customize RAG settings in `rag/store.py`:
+
+```python
+# Chunking parameters
+chunk_size = 800        # Characters per chunk
+chunk_overlap = 120     # Overlap between chunks
+
+# Embedding model
+embed_model = "nomic-embed-text"  # Ollama embedding model
+
+# Database location
+DB_DIR = "rag_db"       # Persistent storage directory
+```
+
+### OCR Configuration
+
+Configure document OCR in the Streamlit interface:
+
+- **Model**: Vision model for text extraction (default: `llava:34b`)
+- **DPI**: Render quality for PDFs (120-600)
+- **Enhancement**: Contrast/binarization for handwriting
+- **Tiling**: Split large images for better small text recognition
+
+## Observability and Monitoring
+
+### LangSmith Integration
+
+The Router project includes comprehensive LangSmith observability:
+
+- **Automatic Tracing**: All LLM calls and agent steps
+- **Custom Metadata**: Model parameters, tool usage, retrieval context
+- **Run Tagging**: Organize traces by functionality
+- **Dashboard**: https://smith.langchain.com
+
+### Local Logging
+
+Agent execution logs are saved to `logs/` directory:
+
+```json
+{
+  "timestamp": "20241003_143022",
+  "input": "What time is it in Tokyo?",
+  "model_alias": "router_light",
+  "settings": {...},
+  "steps": [...],
+  "output": "It is currently 11:30 PM in Tokyo."
+}
+```
+
+## LangSmith Testing Examples (PowerShell)
 
 The snippets below are ready to paste into Windows PowerShell. They enable tracing, run a few smoke tests, and optionally seed a small dataset in LangSmith you can use in the UI.
 
@@ -207,26 +475,267 @@ Notes
 - Change the `--model` and `--base-url` flags in the commands if you want to test different local Ollama models or endpoints.
 - For larger test suites or automated CI, keep the here-string scripts in version control and call them from your pipeline.
 
-## Model Names
-The examples reference several models, e.g. `mixtral:8x7b-instruct-v0.1-q4_0`, `deepseek-v2.5`, `llama3.1:8b-instruct-q4_0`, `llama3.3:70b-instruct-q4_K_M`, etc. If you don’t have these models locally, either:
-- Pull them with `ollama pull <model-name>`, or
-- Replace the names in the scripts with models you already have.
+## API Documentation
 
-Key files to review:
-- `app.py` — Streamlit chat router with soft timeout after first token
-- `agents/tools_agent.py` — ReAct agent wiring with basic tools
-- `tools/basic_tools.py` — Tools: now/today (czas i data), web fetch/search, calculator, file read
-- `server_langserve.py` / `sanity_langserve.py` — FastAPI + LangServe endpoints
-- `observ_langsmith.py` — observability demos
+### Vector Store API
+
+The `rag.store` module provides a complete vector store interface:
+
+```python
+# Document management
+add_document(base_url, text, metadata, embed_model="nomic-embed-text")
+add_documents(base_url, items, embed_model="nomic-embed-text")
+delete_by_filename(base_url, filename, embed_model="nomic-embed-text")
+reset_vectorstore()  # Clear all documents
+
+# Search operations
+similarity_search(base_url, query, k=5, embed_model="nomic-embed-text")
+similarity_search_filtered(base_url, query, k=5, filename=None, embed_model="nomic-embed-text")
+list_filenames(base_url, embed_model="nomic-embed-text")
+```
+
+### Agent Tools API
+
+Create and configure ReAct agents:
+
+```python
+from agents.tools_agent import build_tools_agent, invoke_tools_agent
+from tools.basic_tools import get_basic_tools, select_tools_for_query
+
+# Build agent with custom configuration
+executor = build_tools_agent(
+    llm=llm,
+    max_iterations=10,
+    verbose=False,
+    tools_override=select_tools_for_query("search for Python tutorials"),
+    strict=False
+)
+
+# Execute agent with chat history
+result = invoke_tools_agent(executor, chat_history, user_input, run_config)
+```
+
+### Model Router API
+
+Intent-based routing functionality:
+
+```python
+# Route determination
+route = route_intent("Fix this Python code")
+# Returns: "code"
+
+route = route_intent("Analyze this 50-page research paper")
+# Returns: "long_context"
+
+# Manual route resolution
+eff_route = resolve_route(chat_history, chosen_mode="auto")
+```
+
+## File Structure Reference
+
+### Core Application Files
+
+- **`app.py`** — Main Streamlit application with chat UI, RAG interface, and tool integration
+- **`lang.py`** — Simple Ollama model demonstration
+- **`requirements.txt`** — Python dependencies specification
+
+### RAG System
+
+- **`rag/store.py`** — Vector store operations using ChromaDB and Ollama embeddings
+- **`rag_db/`** — Persistent vector database storage
+
+### Agent System
+
+- **`agents/tools_agent.py`** — ReAct agent implementation with LangChain
+- **`tools/basic_tools.py`** — Tool definitions for web, math, file, time, and OCR operations
+
+### Server Components
+
+- **`server_langserve.py`** — FastAPI server with LangServe chain endpoints
+- **`observ_langsmith.py`** — LangSmith observability utilities and CLI testing
+
+### Data and Logs
+
+- **`logs/`** — Agent execution logs in JSON format
+- **`prompts/examples.yaml`** — Example prompts organized by model type
+
+## Model Requirements
+
+The Router project is designed to work with various Ollama models. Here are the recommended models by category:
+
+### Required Models
+
+```bash
+# Core functionality
+ollama pull mistral:7b-instruct-v0.3-q5_0      # RAG and general tasks
+ollama pull llama3.1:8b-instruct-q4_0          # Light routing
+ollama pull nomic-embed-text                   # Embeddings (required for RAG)
+```
+
+### Optional Specialized Models
+
+```bash
+# Code assistance
+ollama pull qwen3-coder:latest                 # Or codellama, deepseek-coder
+
+# Reasoning tasks
+ollama pull deepseek-v2.5                      # Or llama3.1:70b
+
+# Long context
+ollama pull mistral-small3.2:24b               # Or claude-3-haiku via OpenAI API
+
+# Vision/OCR
+ollama pull llava:34b                          # Or llava:13b for faster processing
+```
+
+### Model Customization
+
+To use different models, update the `MODELS` dictionary in `app.py`:
+
+```python
+MODELS: Dict[str, str] = {
+    "chat":          "llama3.1:8b-instruct-q4_0",  # Your preferred chat model
+    "reasoning":     "llama3.1:70b-instruct-q4_0", # Your reasoning model
+    "code":          "codellama:13b-instruct",      # Your code model
+    "router_light":  "mistral:7b-instruct-v0.3-q5_0",
+    "long_context":  "mistral-large:latest",
+    "rag_worker":    "mistral:7b-instruct-v0.3-q5_0",
+}
+```
 
 ## Troubleshooting
-- Timeouts on first call: large models may need warm-up. Increase the HTTP timeout in `app.py`’s sidebar.
-- `langchain_ollama.ChatOllama` timeout arg name can differ by version; `app.py` handles both `request_timeout` and `timeout`.
-- If imports fail, ensure versions meet minimums in `requirements.txt` and your Python is 3.10+.
-- Web tools rely on outbound HTTP. In restricted environments, network calls will fail; switch back to standard chat or provide direct content.
 
-## To add
+### Common Issues
 
-- For OCR add Mistral OCR https://mistral.ai/news/mistral-ocr https://huggingface.co/spaces/merterbak/Mistral-OCR - seems to not be open-source
-- Llava:34b looks promising
-- Fix vision, reads not pdf, looks bad
+#### Ollama Connection Problems
+
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# Start Ollama service (if not running)
+# Windows: ollama serve
+# macOS/Linux: systemctl start ollama
+```
+
+#### Model Loading Issues
+
+- **Timeouts on first call**: Large models need warm-up time. Increase HTTP timeout in Streamlit sidebar (default: 3600s)
+- **Model not found**: Ensure models are pulled: `ollama pull <model-name>`
+- **Out of memory**: Use smaller quantized models (q4_0, q4_1 instead of fp16)
+
+#### RAG System Issues
+
+- **ChromaDB errors**: Delete `rag_db/` directory to reset vector store
+- **Embedding failures**: Verify `nomic-embed-text` model is available
+- **No search results**: Check if documents were successfully indexed
+
+#### Agent/Tools Issues
+
+- **Web tools fail**: Check internet connectivity and firewall settings
+- **OCR errors**: Ensure vision model (`llava:34b`) is available
+- **Tool timeouts**: Adjust timeouts in Streamlit sidebar
+
+#### Installation Issues
+
+- **Import errors**: Verify Python 3.10+ and all requirements installed
+- **Version conflicts**: Use fresh virtual environment
+- **Missing dependencies**: Some features require optional packages:
+  ```bash
+  # For PDF processing
+  pip install pypdf pymupdf
+  
+  # For enhanced web scraping
+  pip install beautifulsoup4
+  
+  # For better search
+  pip install duckduckgo-search
+  ```
+
+#### LangChain Compatibility
+
+- **Timeout parameter**: `app.py` handles both `request_timeout` and `timeout` for different LangChain versions
+- **API changes**: Update to latest LangChain versions for best compatibility
+
+### Performance Optimization
+
+#### Model Selection
+
+- Use smaller models (7B-13B) for faster responses
+- Reserve large models (70B+) for complex reasoning tasks
+- Consider quantized models (q4_0, q4_K_M) for memory efficiency
+
+#### RAG Optimization
+
+- Adjust chunk sizes based on your document types
+- Use filename filtering for focused searches
+- Implement query preprocessing for better retrieval
+
+#### Streamlit Performance
+
+- Use soft timeouts to prevent UI blocking
+- Enable streaming for long responses
+- Limit context window sizes for faster processing
+
+### Environment-Specific Notes
+
+#### Corporate/Restricted Networks
+
+- Web tools may fail due to proxy/firewall restrictions
+- Use local file tools and disable web search
+- Configure proxy settings if needed
+
+#### Resource-Constrained Systems
+
+- Use smaller models (7B parameters or less)
+- Reduce context windows and max token limits
+- Disable streaming for better stability
+- Consider using Ollama on a separate server
+
+### Debug Mode
+
+Enable verbose logging for troubleshooting:
+
+1. Set `verbose=True` in agent configuration
+2. Enable "Verbose tools logs" in Streamlit sidebar
+3. Check agent execution logs in `logs/` directory
+4. Use LangSmith tracing for detailed debugging
+
+## Future Enhancements
+
+### Planned Features
+
+- **Enhanced OCR**: Integration with specialized OCR models for better accuracy
+- **Multi-modal RAG**: Support for image and video content in vector store
+- **Advanced Agents**: More sophisticated tool orchestration and planning
+- **Model Optimization**: Automatic model selection based on query complexity
+- **UI Improvements**: Enhanced chat interface with better visualization
+
+### Contributing
+
+Contributions are welcome! Please focus on:
+
+- Additional tool implementations
+- Enhanced document processing capabilities
+- Model router improvements
+- Performance optimizations
+- Documentation updates
+
+### License
+
+This project is designed for educational and development purposes. Please ensure compliance with Ollama model licenses and usage terms.
+
+## Support
+
+For issues and questions:
+
+1. Check this documentation first
+2. Review the troubleshooting section
+3. Examine log files in `logs/` directory
+4. Test with simpler models if issues persist
+5. Verify Ollama service status and model availability
+
+---
+
+**Router** - Intelligent LLM routing with RAG capabilities
+Built with LangChain, Ollama, ChromaDB, and Streamlit
